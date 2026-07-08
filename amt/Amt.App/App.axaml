@@ -1,0 +1,38 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Amt.App.App"
+             RequestedThemeVariant="Dark">
+
+    <!-- The WNL black/grey palette — these brushes are the app's "CSS variables". Every screen
+         references them by key, so a theme change is one edit here. Hexes are the locked tokens
+         from the iced design (AMT-UI-SPEC.md §1). -->
+    <Application.Resources>
+        <!-- Derived from Win11 File Explorer dark greys. Primary = the muted WNL purple. Field = the raised
+             command-bar surface: the active tab and the toolbar band share it, so they read as one physical
+             panel (the tab IS the field). Panel (#202020) is the darker strip that sits behind the tabs. -->
+        <SolidColorBrush x:Key="Bg"        Color="#191919"/>
+        <SolidColorBrush x:Key="Panel"     Color="#202020"/>
+        <SolidColorBrush x:Key="Field"     Color="#2d2d2d"/>
+        <SolidColorBrush x:Key="Raised"    Color="#383838"/>
+        <SolidColorBrush x:Key="Ink"       Color="#ffffff"/>
+        <SolidColorBrush x:Key="Mut"       Color="#d4d4d4"/>
+        <SolidColorBrush x:Key="Dim"       Color="#9b9b9b"/>
+        <SolidColorBrush x:Key="Strong"    Color="#ffffff"/>
+        <SolidColorBrush x:Key="Line"      Color="#2d2d2d"/>
+        <SolidColorBrush x:Key="Line2"     Color="#3a3a3a"/>
+        <SolidColorBrush x:Key="Primary"   Color="#5a2e7c"/>
+        <SolidColorBrush x:Key="OnPrimary" Color="#ffffff"/>
+        <SolidColorBrush x:Key="Ok"        Color="#6ccb8f"/>
+        <!-- the WNL purple lightened for TEXT use (raw #5a2e7c is ~2:1 on dark — unreadable as a link);
+             same hue, a derived tint, not a new colour -->
+        <SolidColorBrush x:Key="AccentText" Color="#b18ad1"/>
+        <SolidColorBrush x:Key="Up"        Color="#e6b450"/>
+        <SolidColorBrush x:Key="RowHover"  Color="#2f2f2f"/>
+        <!-- the installed-row margin — DYNAMIC so the Settings density control can retune every row live -->
+        <Thickness x:Key="RowMargin">16,12</Thickness>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+    </Application.Styles>
+</Application>

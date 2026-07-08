@@ -1,0 +1,1117 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Amt.App"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1180" d:DesignHeight="760"
+        x:Class="Amt.App.MainWindow"
+        Title="Ant's Modding Tools"
+        Icon="/Assets/wnl.ico"
+        Width="1180" Height="760" MinWidth="620" MinHeight="420"
+        Background="{StaticResource Bg}"
+        WindowDecorations="None"
+        ExtendClientAreaToDecorationsHint="True">
+    <!-- Frameless (Avalonia 12): our chrome drives move/min/max/close, edge grips drive resize, DWM
+         rounds the window. Inside = small-but-rounded (4px); the window edge = 8px. -->
+
+    <Window.Styles>
+        <!-- flared Explorer tab: the whole panel is clickable; TabShape draws the silhouette -->
+        <Style Selector="Panel.tab">
+            <Setter Property="Height" Value="31"/>
+            <Setter Property="VerticalAlignment" Value="Bottom"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <!-- ONLY the active tab is filled (Explorer). Idle tabs are just their label on the dark strip,
+             separated by thin lines. Hover shows a subtle shape so the tab reads before you click. -->
+        <!-- hover fills with the SAME Field grey as the active tab + toolbar, so a hovered tab melts into the
+             plane below (one continuous surface) instead of sitting on it with a seam. Active keeps the white label. -->
+        <Style Selector="Panel.tab:pointerover vm|TabShape">
+            <Setter Property="Fill" Value="{StaticResource Field}"/>
+        </Style>
+        <Style Selector="Panel.tab.active vm|TabShape">
+            <Setter Property="Fill" Value="{StaticResource Field}"/>
+        </Style>
+        <Style Selector="Panel.tab TextBlock.tablabel">
+            <Setter Property="Foreground" Value="{StaticResource Mut}"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Panel.tab.active TextBlock.tablabel">
+            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        </Style>
+
+        <!-- window caption buttons -->
+        <Style Selector="Button.cap">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Foreground" Value="{StaticResource Mut}"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="11"/>
+        </Style>
+        <Style Selector="Button.cap:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#22ffffff"/>
+        </Style>
+        <Style Selector="Button.cap.close:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#e81123"/>
+        </Style>
+
+        <!-- sidebar category row: whole row clickable (Transparent base), small rounded -->
+        <Style Selector="Border.cat">
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="Border.cat:pointerover">
+            <Setter Property="Background" Value="#18ffffff"/>
+        </Style>
+        <Style Selector="Border.cat.active">
+            <Setter Property="Background" Value="#22ffffff"/>
+        </Style>
+        <!-- AMT-20 content-type switch: the selected type (Mods / Resource packs / Data packs) reads highlighted -->
+        <Style Selector="Border.cat.ctactive">
+            <Setter Property="Background" Value="#22ffffff"/>
+        </Style>
+
+        <!-- the mod list = transparent virtualizing ListBox styled as a table -->
+        <Style Selector="ListBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="CornerRadius" Value="0"/>
+        </Style>
+        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource RowHover}"/>
+        </Style>
+        <!-- selection stays VISIBLE (author bug report: transparent selection read as rows losing their
+             highlight) — a step stronger than hover so the selected row reads at a glance -->
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#353535"/>
+        </Style>
+
+        <!-- subtle drop shadow on text for a soft 3D lift -->
+        <Style Selector="TextBlock">
+            <Setter Property="Effect">
+                <DropShadowEffect BlurRadius="2.5" OffsetX="0" OffsetY="1" Color="#000000" Opacity="0.45"/>
+            </Setter>
+        </Style>
+
+        <!-- overflow ▾ chip (the hidden-tabs menu button): Transparent so it stays hit-testable, tinting to the
+             Field grey on hover so it reads like a tab. -->
+        <Style Selector="Border.overflowchip">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="Border.overflowchip:pointerover">
+            <Setter Property="Background" Value="{StaticResource Field}"/>
+        </Style>
+
+        <!-- tab × close button: HIDDEN until its tab is highlighted (hovered or active) — idle tabs stay
+             clean text (author). Opacity-only is safe: an invisible × can't be clicked because the pointer
+             isn't over its tab. Subtle box highlight when the × itself is hovered. -->
+        <Style Selector="Border.tabclose">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="Transitions">
+                <Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.1"/></Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Panel.tab:pointerover Border.tabclose">
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+        <Style Selector="Panel.tab.active Border.tabclose">
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+        <Style Selector="Border.tabclose:pointerover">
+            <Setter Property="Background" Value="#33ffffff"/>
+        </Style>
+
+        <!-- per-row update BUTTON (the STATUS cell on an update row): highlight + underscore on hover. It's only
+             hit-testable when the row HasUpdate (bound), so 'up to date'/'local' cells stay inert. -->
+        <Style Selector="Border.statuscell:pointerover">
+            <Setter Property="Background" Value="#22ffffff"/>
+        </Style>
+        <Style Selector="Border.statuscell:pointerover TextBlock">
+            <Setter Property="TextDecorations" Value="Underline"/>
+        </Style>
+
+        <!-- Keep custom text fields FLAT on hover/focus: the Fluent theme repaints the TextBox's own template
+             border with its dark theme brushes, which reads as a mismatched dark box inside our styled
+             containers (the "dark hover"). Pin the template border to what each field declares. -->
+        <Style Selector="TextBox.flat:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+        </Style>
+        <Style Selector="TextBox.flat:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+        </Style>
+        <Style Selector="TextBox.set:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="#424242"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line2}"/>
+        </Style>
+        <Style Selector="TextBox.set:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{StaticResource Raised}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line2}"/>
+        </Style>
+
+        <!-- search field hover: a SLIGHT light lift of the WHOLE field (author call — not Fluent's dark box) -->
+        <Style Selector="Border.searchfield">
+            <Setter Property="Background" Value="{StaticResource Raised}"/>
+        </Style>
+        <Style Selector="Border.searchfield:pointerover">
+            <Setter Property="Background" Value="#424242"/>
+        </Style>
+
+        <!-- toolbar button hovers: purple buttons brighten AND lift a hair on hover (AMT-15 button-animation
+             pass). The scale is deliberately tiny (1.03) + fast (95ms ease-out) so it reads as responsiveness,
+             not bounce. RenderTransformOrigin centres the scale so the button grows in place. -->
+        <Style Selector="Border.pbtn">
+            <Setter Property="Background" Value="{StaticResource Primary}"/>
+            <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.095" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.pbtn:pointerover">
+            <Setter Property="Background" Value="#6f3d99"/>
+            <Setter Property="RenderTransform" Value="scale(1.03)"/>
+        </Style>
+
+        <!-- the green ▶ Play button: same lift + a slight brighten (it's the go action, gets a touch more life) -->
+        <Style Selector="Border#PlayBtn">
+            <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.095" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border#PlayBtn:pointerover">
+            <Setter Property="Background" Value="#7ad69f"/>
+            <Setter Property="RenderTransform" Value="scale(1.03)"/>
+        </Style>
+
+        <!-- the ⟳ glyph spins while a scan runs (class added/removed in code) -->
+        <Style Selector="Border.spinning > TextBlock">
+            <Style.Animations>
+                <Animation Duration="0:0:1" IterationCount="INFINITE">
+                    <KeyFrame Cue="0%"><Setter Property="RotateTransform.Angle" Value="0"/></KeyFrame>
+                    <KeyFrame Cue="100%"><Setter Property="RotateTransform.Angle" Value="360"/></KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+
+        <!-- Settings form field — same raised-box look as the search field (spec: 13px text, 34px height) -->
+        <Style Selector="TextBox.set">
+            <Setter Property="Background" Value="{StaticResource Raised}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line2}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="MinHeight" Value="34"/>
+        </Style>
+
+        <!-- The Settings design language (AMT-SETTINGS-DESIGN-SPEC.md): Win11 SettingsCard model in our tokens.
+             Hierarchy is carried by weight + brush; small dim text drops the global shadow (it reads as noise). -->
+        <Style Selector="TextBlock.setpagetitle">
+            <Setter Property="FontSize" Value="22"/><Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        </Style>
+        <Style Selector="TextBlock.setpagesub">
+            <Setter Property="FontSize" Value="12.5"/><Setter Property="Foreground" Value="{StaticResource Dim}"/>
+            <Setter Property="Effect" Value="{x:Null}"/>
+        </Style>
+        <Style Selector="TextBlock.setsection">
+            <Setter Property="FontSize" Value="14"/><Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+            <Setter Property="Margin" Value="0,32,0,10"/>
+        </Style>
+        <Style Selector="TextBlock.settitle">
+            <Setter Property="FontSize" Value="13.5"/><Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        </Style>
+        <Style Selector="TextBlock.setdesc">
+            <Setter Property="FontSize" Value="12.5"/><Setter Property="Foreground" Value="{StaticResource Dim}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/><Setter Property="MaxWidth" Value="560"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/><Setter Property="LineHeight" Value="18"/>
+            <Setter Property="Effect" Value="{x:Null}"/>
+        </Style>
+        <Style Selector="Border.setcard">
+            <Setter Property="Background" Value="{StaticResource Panel}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="16,14"/>
+            <!-- part of the 3D pass: cards float a hair above the page -->
+            <Setter Property="BoxShadow" Value="0 1 4 0 #40000000"/>
+        </Style>
+        <!-- the sidebar splitter lane: invisible until hovered, then a faint lift so it's discoverable -->
+        <Style Selector="Border.splitter:pointerover">
+            <Setter Property="Background" Value="#14ffffff"/>
+        </Style>
+
+        <!-- AMT-06 column picker: the ▥ header button toggles these no-* classes on the mod list, and every
+             row's matching cells collapse together — one class flip drives all ~800 rows -->
+        <Style Selector="ListBox.no-author TextBlock.colauthor"><Setter Property="IsVisible" Value="False"/></Style>
+        <Style Selector="ListBox.no-env TextBlock.colenv"><Setter Property="IsVisible" Value="False"/></Style>
+        <Style Selector="ListBox.no-size TextBlock.colsize"><Setter Property="IsVisible" Value="False"/></Style>
+        <Style Selector="ListBox.no-added TextBlock.coladded"><Setter Property="IsVisible" Value="False"/></Style>
+
+        <!-- attached field buttons (browse / open / reveal): share the field chrome, sit beside the input.
+             Smooth background fade on hover (AMT-15) — no scale here, these are small utility buttons. -->
+        <Style Selector="Border.fieldbtn">
+            <Setter Property="Background" Value="{StaticResource Raised}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line2}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Width" Value="36"/>
+            <Setter Property="Transitions">
+                <Transitions><BrushTransition Property="Background" Duration="0:0:0.11"/></Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.fieldbtn:pointerover">
+            <Setter Property="Background" Value="#424242"/>
+        </Style>
+
+        <!-- Tools cards + sidebar rows: a smooth background fade instead of an instant swap (AMT-15). The
+             Tools cards drive their own hover bg in code; giving the class a transition makes it glide. -->
+        <Style Selector="Border.toolcard">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.11" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+            <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
+        </Style>
+        <Style Selector="Border.cat">
+            <Setter Property="Transitions">
+                <Transitions><BrushTransition Property="Background" Duration="0:0:0.11"/></Transitions>
+            </Setter>
+        </Style>
+    </Window.Styles>
+
+    <Panel>
+        <Border BorderBrush="{StaticResource Line2}" BorderThickness="1" Background="{StaticResource Bg}"
+                CornerRadius="8" ClipToBounds="True">
+            <DockPanel>
+
+                <!-- ============ header: the title/tab bar (row 0, 47px) and the toolbar band (row 1, 44px) stacked as
+                     a 2-row Grid. The WNL badge overlays row 0's empty LEFT space — beside the tabs and above the
+                     toolbar field (author: "in the empty space above the tab field and next to the tabs"), NOT
+                     straddling into the search band. Tabs + search both start after a ~46px left column so the badge
+                     has clear room to its right. ======= -->
+                <!-- the WHOLE header (tab bar + toolbar) is ONE plane casting a shadow onto the body below —
+                     never a seam between the active tab and the field (author rule) -->
+                <Border DockPanel.Dock="Top" BoxShadow="0 3 8 0 #55000000" ZIndex="1">
+                <Panel>
+                    <Grid RowDefinitions="47,44">
+
+                        <!-- row 0: title + tabs bar -->
+                        <Border Grid.Row="0" Background="{StaticResource Panel}"
+                                Name="TitleBar" PointerPressed="OnTitleBarPressed" DoubleTapped="OnTitleBarDoubleTapped">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                    <Button Classes="cap" Click="OnMinimize"><TextBlock Text="—"/></Button>
+                                    <Button Classes="cap" Click="OnMaxRestore"><TextBlock Text="▢"/></Button>
+                                    <Button Classes="cap close" Click="OnClose"><TextBlock Text="✕"/></Button>
+                                </StackPanel>
+                                <!-- The tab strip. Tabs sit at content width; when they don't all fit, the rightmost ones
+                                     fold into an overflow ▾ chip ONE AT A TIME as the window narrows (built + managed in
+                                     code by BuildTabs/LayoutTabs). Each tab animates its Width+Opacity so the fold is
+                                     smooth, and the active tab is always kept visible. The 46px left margin reserves the
+                                     WNL badge column. -->
+                                <!-- no scroller: LayoutTabs guarantees the strip always fits (tabs shrink, then fold
+                                     into the ▾ chip), so the panel's clip is the only containment needed -->
+                                <Panel VerticalAlignment="Stretch" Margin="46,0,0,0" ClipToBounds="True">
+                                    <StackPanel Name="TabsPanel" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="8,0,0,0" Spacing="0"/>
+                                </Panel>
+                            </DockPanel>
+                        </Border>
+
+                        <!-- row 1: toolbar band — same Field grey as the active tab, so the tab + search + updater
+                             buttons read as ONE physical panel. The search band is Explorer-style: it fills the
+                             whole band edge-to-buttons (the 8px Grid margin is the minimum edge), its placeholder
+                             showing the full mods path (the empty bar tells you where you are; typing searches). -->
+                        <Border Grid.Row="1" Background="{StaticResource Field}">
+                            <Grid Margin="8,0" ColumnDefinitions="*,Auto">
+                                <Border Grid.Column="0" Name="SearchField" Classes="searchfield" VerticalAlignment="Center" Height="30" Margin="0,0,12,0"
+                                        BorderBrush="{StaticResource Line2}" BorderThickness="1" CornerRadius="4">
+                                    <Grid ColumnDefinitions="Auto,*" Margin="10,0">
+                                        <TextBlock Grid.Column="0" Text="⌕" Foreground="{StaticResource Dim}" FontSize="13.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <!-- SemiBold so the path placeholder reads; double-click drops the path in as
+                                             selected TEXT (editable/clearable — type to replace it with a search) -->
+                                        <TextBox Grid.Column="1" Name="SearchBox" Classes="flat" TextChanged="OnSearchChanged" DoubleTapped="OnSearchDoubleTapped" ToolTip.Tip="Type to search installed mods · double-click inserts the folder path"
+                                                 PlaceholderText="search installed mods…" Background="Transparent" BorderThickness="0"
+                                                 Foreground="{StaticResource Ink}" FontSize="12" FontWeight="SemiBold" Padding="0"
+                                                 MinHeight="0" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <!-- ▶ Play — boots the game via the configured launch command (AMT-14). Green =
+                                         the go action; the tooltip carries the signed-in account (or offline). -->
+                                    <Border Name="PlayBtn" Height="30" CornerRadius="4" Padding="14,0" Cursor="Hand"
+                                            Background="{StaticResource Ok}" PointerPressed="OnPlay" ToolTip.Tip="Boot the game">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                            <TextBlock Text="▶" Foreground="#0f2a17" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                                            <TextBlock Name="PlayText" Text="Play" Foreground="#0f2a17" FontSize="11.5" FontWeight="Bold" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Height="30" CornerRadius="4" BorderBrush="{StaticResource Line2}" BorderThickness="1" ClipToBounds="True">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Name="SegAll" Background="{StaticResource Primary}" Padding="12,0" VerticalAlignment="Stretch"
+                                                    PointerPressed="OnSegAll" Cursor="Hand" ToolTip.Tip="Show every installed mod">
+                                                <TextBlock Name="SegAllText" Text="All mods" Foreground="{StaticResource OnPrimary}" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <Border Name="SegUpd" Background="{StaticResource Raised}" Padding="12,0" VerticalAlignment="Stretch"
+                                                    PointerPressed="OnSegUpd" Cursor="Hand" ToolTip.Tip="Show only mods with a newer build">
+                                                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                    <Ellipse Width="6" Height="6" Fill="{StaticResource Up}"/>
+                                                    <TextBlock Name="SegUpdText" Text="Updates" Foreground="{StaticResource Mut}" FontSize="11.5" FontWeight="SemiBold"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+                                    <!-- Update all — right of the Updates segment (author placement); appears only
+                                         while updates exist; the CF-app-style one-click install -->
+                                    <Border Name="UpdateAllBtn" IsVisible="False" Classes="pbtn" Height="30" CornerRadius="4"
+                                            Padding="12,0" PointerPressed="OnUpdateAll" Cursor="Hand" ToolTip.Tip="Update every listed mod — old jars are backed up first; modified jars are skipped">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                            <Ellipse Width="6" Height="6" Fill="{StaticResource Up}"/>
+                                            <TextBlock Name="UpdateAllText" Text="Update all" Foreground="{StaticResource OnPrimary}" FontSize="11.5" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Name="Refresh" Classes="pbtn" Width="34" Height="30" CornerRadius="4"
+                                            PointerPressed="OnRefresh" Cursor="Hand" ToolTip.Tip="Rescan the mods folder and re-check both sites">
+                                        <!-- the glyph spins (class "spinning" on the Border) while a scan runs -->
+                                        <TextBlock Text="⟳" Foreground="{StaticResource OnPrimary}" FontSize="15" FontWeight="Bold"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="50%,50%"/>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                    </Grid>
+
+                    <!-- WNL badge: overlays ROW 0's empty left space (the dark title bar), aligned to the TOP so it
+                         sits beside the tabs and above the toolbar field — the top margin drops it to the tabs' level
+                         within row 0 (kept above the row-0/toolbar seam so it never dips into the search band). -->
+                    <!-- clickable: the badge opens the project's GitHub -->
+                    <Border Classes="pbtn" Padding="7,4" CornerRadius="4" Cursor="Hand" PointerPressed="OnOpenRepo" ToolTip.Tip="Open the project on GitHub"
+                            HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,20,0,0">
+                        <TextBlock Text="WNL" Foreground="{StaticResource OnPrimary}" FontWeight="Bold" FontSize="11"/>
+                    </Border>
+                </Panel>
+                </Border>
+
+                <!-- ============ status bar — semi-transparent so it sits lighter on the window ============ -->
+                <Border DockPanel.Dock="Bottom" Background="#B3202020" Height="34" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
+                    <Grid Margin="14,0">
+                        <!-- versions are READ FROM THE ASSEMBLIES at startup (never hand-edited here) — bump the
+                             csproj <Version> on every patch and both chips follow. Status items are CLICKABLE:
+                             each jumps to what it describes (counts → the list/filter, API chips → Settings). -->
+                        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                            <Ellipse Width="7" Height="7" Fill="{StaticResource Ok}"/>
+                            <TextBlock Text="UI" Foreground="{StaticResource Dim}" FontSize="8.5" VerticalAlignment="Center"/>
+                            <TextBlock Name="UiVer" Text="v?" Foreground="{StaticResource Dim}" FontSize="11.5" VerticalAlignment="Center"/>
+                            <TextBlock Name="ModsCount" Text="0 mods" PointerPressed="OnStatusMods" Cursor="Hand" ToolTip.Tip="Show all installed mods" Foreground="{StaticResource Mut}" FontSize="11.5" VerticalAlignment="Center"/>
+                            <TextBlock Name="UpdatesCount" Text="0 updates" PointerPressed="OnStatusUpdates" Cursor="Hand" ToolTip.Tip="Show only the mods with updates" Foreground="{StaticResource Mut}" FontSize="11.5" VerticalAlignment="Center"/>
+                            <TextBlock Name="CatLabel" Text="category: All" PointerPressed="OnStatusCategory" Cursor="Hand" ToolTip.Tip="Reset the category filter" Foreground="{StaticResource Mut}" FontSize="11.5" VerticalAlignment="Center"/>
+                            <!-- app self-updater (AMT-13): hidden until GitHub has a newer release; click = the
+                                 update dialog. Amber so it reads as actionable, matching the mod-update colour. -->
+                            <Border Name="AppUpdateChip" IsVisible="False" Background="{StaticResource Primary}" CornerRadius="3"
+                                    Padding="8,2" Cursor="Hand" PointerPressed="OnAppUpdateClick" ToolTip.Tip="A newer version of Ant's Modding Tools is available">
+                                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <Ellipse Width="6" Height="6" Fill="{StaticResource Up}"/>
+                                    <TextBlock Name="AppUpdateText" Text="update available" Foreground="{StaticResource OnPrimary}" FontSize="11" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <!-- per-API chips: Modrinth (keyless) + CurseForge (keyed) report their own state
+                                 independently; both click through to Settings -->
+                            <StackPanel Orientation="Horizontal" Spacing="6" PointerPressed="OnStatusApi" Cursor="Hand" VerticalAlignment="Center">
+                                <Ellipse Name="MrDot" Width="7" Height="7" Fill="{StaticResource Dim}"/>
+                                <TextBlock Text="MODRINTH" Foreground="{StaticResource Dim}" FontSize="8.5" VerticalAlignment="Center"/>
+                                <TextBlock Name="MrState" Text="—" Foreground="{StaticResource Mut}" FontSize="11.5" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6" PointerPressed="OnStatusApi" Cursor="Hand" VerticalAlignment="Center">
+                                <Ellipse Name="CfDot" Width="7" Height="7" Fill="{StaticResource Dim}"/>
+                                <TextBlock Text="CURSEFORGE" Foreground="{StaticResource Dim}" FontSize="8.5" VerticalAlignment="Center"/>
+                                <TextBlock Name="CfState" Text="—" Foreground="{StaticResource Mut}" FontSize="11.5" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Ellipse Width="7" Height="7" Fill="{StaticResource Ok}"/>
+                            <TextBlock Text="CORE" Foreground="{StaticResource Dim}" FontSize="8.5" VerticalAlignment="Center"/>
+                            <TextBlock Name="CoreVer" Text="v?" Foreground="{StaticResource Dim}" FontSize="11.5" VerticalAlignment="Center"/>
+                            <TextBlock Name="CoreStatus" Text="idle" Foreground="{StaticResource Mut}" FontSize="11.5" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- ============ body: sidebar | content ============ -->
+                <Grid Name="BodyGrid" Background="{StaticResource Bg}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="283"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- the sidebar = the dock engine's first panel (AMT-03). THREE states, all in this column:
+                         Expanded (full panel, user-dragged width via the splitter), IconRail (44px monogram
+                         chips), Hidden (24px ⟩ handle). The splitter overlays the seam; DockRules (Amt.Core)
+                         owns every number. The footer is the docked bottom (author: "needs a bottom"). -->
+                    <Border Name="SidebarBorder" Grid.Column="0" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+                    <Panel>
+                        <DockPanel Name="SidebarFull">
+                            <Border DockPanel.Dock="Bottom" Classes="cat" Height="32" CornerRadius="0" Cursor="Hand"
+                                    BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0"
+                                    PointerPressed="OnCollapseSidebar" ToolTip.Tip="Collapse the sidebar">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0" Spacing="8">
+                                    <TextBlock Text="⟨" Foreground="{StaticResource Mut}" FontSize="13" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Collapse" Foreground="{StaticResource Dim}" FontSize="11.5" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                        <!-- CONTEXTUAL sidebar (AMT-05): each tab brings its own panel here. Installed = the
+                             instance + categories; Settings = a section nav that jumps the page; other tabs
+                             show a placeholder until their pages land. UpdateSidebarContext() switches them. -->
+                        <Panel>
+                        <StackPanel Name="CtxInstalled" Margin="10" Spacing="14">
+                            <!-- filled from settings by ShowInstance(); the INSTANCE header matches the table's
+                                 column-header style/line, and the block clicks through to Settings (author call) -->
+                            <StackPanel>
+                                <TextBlock Text="INSTANCE" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5" Margin="8,10,0,4"/>
+                                <Border Classes="cat" Padding="8,8" CornerRadius="4" Cursor="Hand"
+                                        PointerPressed="OnStatusApi" ToolTip.Tip="Instance settings">
+                                    <StackPanel Spacing="5">
+                                        <TextBlock Name="InstanceName" Text="…" Foreground="{StaticResource Strong}" FontWeight="Bold" FontSize="16.5" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Name="InstanceMeta" Text="" Foreground="{StaticResource Mut}" FontSize="12.5"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- content-type switch (AMT-20): the Installed tab shows Mods OR the installed
+                                 resource/data packs. Selecting a pack type swaps the table + hides Categories
+                                 (packs have no categories). The dedicated Data/Resource tabs fold into ▾. -->
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="SHOWING" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5" Margin="8,0,0,4"/>
+                                <Border Classes="cat ctactive" Name="CtMods" Tag="mods" Cursor="Hand" PointerPressed="OnContentType">
+                                    <TextBlock Text="Mods" Foreground="{StaticResource Ink}" FontSize="13" FontWeight="SemiBold"/>
+                                </Border>
+                                <Border Classes="cat" Name="CtRes" Tag="res" Cursor="Hand" PointerPressed="OnContentType">
+                                    <TextBlock Text="Resource packs" Foreground="{StaticResource Mut}" FontSize="13"/>
+                                </Border>
+                                <Border Classes="cat" Name="CtData" Tag="data" Cursor="Hand" PointerPressed="OnContentType">
+                                    <TextBlock Text="Data packs" Foreground="{StaticResource Mut}" FontSize="13"/>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel Name="CtxCategories" Spacing="4">
+                                <!-- click collapses/expands the list; right-click restores hidden categories -->
+                                <StackPanel Orientation="Horizontal" Margin="8,0" PointerPressed="OnToggleCats" Cursor="Hand"
+                                            Background="Transparent" ToolTip.Tip="Click: collapse/expand · Right-click: restore hidden categories">
+                                    <TextBlock Text="Categories" Foreground="{StaticResource Ink}" FontWeight="Bold" FontSize="16"/>
+                                    <TextBlock Text="▾" Foreground="{StaticResource Mut}" FontSize="13.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <Border Height="1" Background="{StaticResource Line2}" Margin="0,2"/>
+                                <StackPanel Name="CatsPanel" Spacing="2"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Settings context: the page's sections as a nav — clicking scrolls the page there -->
+                        <StackPanel Name="CtxSettings" Margin="10" Spacing="4" IsVisible="False">
+                            <TextBlock Text="SETTINGS" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5" Margin="8,10,0,4"/>
+                            <TextBlock Text="Sections" Foreground="{StaticResource Ink}" FontWeight="Bold" FontSize="16" Margin="8,0"/>
+                            <Border Height="1" Background="{StaticResource Line2}" Margin="0,2"/>
+                            <Border Classes="cat" Tag="instance" Cursor="Hand" PointerPressed="OnSettingsNav">
+                                <TextBlock Text="Instance" Foreground="{StaticResource Mut}" FontSize="12.5"/>
+                            </Border>
+                            <Border Classes="cat" Tag="sources" Cursor="Hand" PointerPressed="OnSettingsNav">
+                                <TextBlock Text="Update sources" Foreground="{StaticResource Mut}" FontSize="12.5"/>
+                            </Border>
+                            <Border Classes="cat" Tag="downloads" Cursor="Hand" PointerPressed="OnSettingsNav">
+                                <TextBlock Text="Downloads" Foreground="{StaticResource Mut}" FontSize="12.5"/>
+                            </Border>
+                            <Border Classes="cat" Tag="appearance" Cursor="Hand" PointerPressed="OnSettingsNav">
+                                <TextBlock Text="Appearance" Foreground="{StaticResource Mut}" FontSize="12.5"/>
+                            </Border>
+                            <Border Classes="cat" Tag="feedback" Cursor="Hand" PointerPressed="OnSettingsNav">
+                                <TextBlock Text="Feedback" Foreground="{StaticResource Mut}" FontSize="12.5"/>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- placeholder context for pages that aren't built yet -->
+                        <StackPanel Name="CtxSoon" Margin="10" Spacing="6" IsVisible="False">
+                            <TextBlock Text="PAGE" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5" Margin="8,10,0,4"/>
+                            <TextBlock Name="CtxSoonTitle" Text="" Foreground="{StaticResource Strong}" FontWeight="Bold" FontSize="16.5" Margin="8,0"/>
+                            <TextBlock Text="This page's context panel arrives with the page itself." Foreground="{StaticResource Dim}"
+                                       FontSize="12" TextWrapping="Wrap" Margin="8,2,8,0"/>
+                        </StackPanel>
+                        </Panel>
+                            </ScrollViewer>
+                        </DockPanel>
+
+                        <!-- ICON RAIL state: monogram chips for the instance + each category (tooltips carry the
+                             full names/counts; chips filter exactly like the full rows). Footer ⟩ expands. -->
+                        <DockPanel Name="SidebarIconRail" IsVisible="False">
+                            <Border DockPanel.Dock="Bottom" Classes="cat" Height="32" CornerRadius="0" Cursor="Hand"
+                                    BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0"
+                                    PointerPressed="OnRestoreSidebar" ToolTip.Tip="Expand the sidebar">
+                                <TextBlock Text="⟩" Foreground="{StaticResource Mut}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Spacing="4" Margin="4,10">
+                                    <Border Name="RailInstance" Classes="pbtn" Height="32" CornerRadius="4" Cursor="Hand"
+                                            PointerPressed="OnStatusApi" ToolTip.Tip="Instance settings">
+                                        <TextBlock Name="RailInstanceText" Text="—" Foreground="{StaticResource OnPrimary}" FontSize="11" FontWeight="Bold"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <Border Height="1" Background="{StaticResource Line2}" Margin="2,4"/>
+                                    <StackPanel Name="RailPanel" Spacing="2"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </DockPanel>
+
+                        <!-- HIDDEN state: a thin full-height ⟩ handle, click anywhere on it to expand -->
+                        <Border Name="SidebarRail" IsVisible="False" Cursor="Hand" Background="{StaticResource Panel}"
+                                PointerPressed="OnRestoreSidebar" ToolTip.Tip="Show the sidebar">
+                            <TextBlock Text="⟩" Foreground="{StaticResource Mut}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12,0,0"/>
+                        </Border>
+                    </Panel>
+                    </Border>
+
+                    <!-- the dock SPLITTER: a 7px transparent drag lane straddling the sidebar/content seam
+                         (negative margin reaches back over the border line). Drag = resize; drag very narrow =
+                         snap to the icon rail; the width is hard-capped at half the window (DockRules). -->
+                    <Border Name="SidebarSplitter" Grid.Column="1" Classes="splitter" Width="7" Margin="-4,0,0,0"
+                            HorizontalAlignment="Left" ZIndex="9" Background="Transparent" Cursor="SizeWestEast"
+                            PointerPressed="OnSplitterPressed" PointerMoved="OnSplitterMoved" PointerReleased="OnSplitterReleased"
+                            ToolTip.Tip="Drag to resize the sidebar"/>
+
+                    <Grid Name="ContentHost" Grid.Column="1">
+                        <Grid Name="InstalledPanel" RowDefinitions="Auto,Auto,*">
+                            <!-- clickable sort headers (MOD/INSTALLED/LATEST/STATUS toggle asc/desc; arrow appended
+                                 in code). The header mirrors the row's DockPanel layout so cells line up, and the
+                                 ▥ picker at the far right chooses which optional columns show (AMT-06). -->
+                            <DockPanel Grid.Row="0" Margin="16,10" LastChildFill="True">
+                                <Border DockPanel.Dock="Left" Width="46"/>
+                                <Border DockPanel.Dock="Right" Name="ColsPicker" Width="24" Height="20" Background="Transparent"
+                                        Cursor="Hand" PointerPressed="OnColumnsPicker" ToolTip.Tip="Choose columns">
+                                    <TextBlock Text="▥" Foreground="{StaticResource Dim}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <Border DockPanel.Dock="Right" Width="56"/>
+                                <TextBlock DockPanel.Dock="Right" Name="HdrStatus" Tag="3" Width="84" Text="STATUS" PointerPressed="OnSortHeader" Cursor="Hand" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5"/>
+                                <TextBlock DockPanel.Dock="Right" Name="HdrAdded" Width="84" Text="ADDED" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5"/>
+                                <TextBlock DockPanel.Dock="Right" Name="HdrSize" Width="64" Text="SIZE" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5"/>
+                                <TextBlock DockPanel.Dock="Right" Name="HdrEnv" Width="56" Text="ENV" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5"/>
+                                <TextBlock DockPanel.Dock="Right" Name="HdrLatest" Tag="2" Width="120" Text="LATEST" PointerPressed="OnSortHeader" Cursor="Hand" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5" Margin="0,0,8,0"/>
+                                <TextBlock DockPanel.Dock="Right" Name="HdrInstalled" Tag="1" Width="120" Text="INSTALLED" PointerPressed="OnSortHeader" Cursor="Hand" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5" Margin="0,0,8,0"/>
+                                <TextBlock DockPanel.Dock="Right" Name="HdrAuthor" Width="110" Text="AUTHOR" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5" Margin="0,0,8,0"/>
+                                <TextBlock Name="HdrMod" Tag="0" Text="MOD" PointerPressed="OnSortHeader" Cursor="Hand" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5"/>
+                            </DockPanel>
+                            <Border Grid.Row="1" Height="1" Background="{StaticResource Line}"/>
+                            <ListBox Name="RowsList" Grid.Row="2" DoubleTapped="OnRowActivated">
+                                <ListBox.ItemTemplate>
+                                    <!-- no divider lines between rows (author call) — the hover highlight alone marks
+                                         the row under the pointer -->
+                                    <DataTemplate x:DataType="vm:ModRow">
+                                        <!-- AMT-06 row: icon | name+file (fill) | optional AUTHOR/ENV/SIZE/ADDED |
+                                             INSTALLED | LATEST | STATUS (the update button) | enable toggle | ≣.
+                                             DockPanel instead of a Grid so a hidden optional cell COLLAPSES its
+                                             space (the ▥ header picker toggles ListBox classes; styles do the rest). -->
+                                        <DockPanel Margin="{DynamicResource RowMargin}" LastChildFill="True">
+                                            <!-- streamed 34px icon; until (or unless) it arrives, the monogram fallback shows -->
+                                            <Border DockPanel.Dock="Left" Width="34" Height="34" CornerRadius="6" ClipToBounds="True"
+                                                    Background="{StaticResource Raised}" VerticalAlignment="Center" Margin="0,0,12,0">
+                                                <Panel>
+                                                    <TextBlock Text="{Binding Initial}" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="15"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <Image Source="{Binding Icon}" Stretch="UniformToFill"/>
+                                                </Panel>
+                                            </Border>
+
+                                            <!-- ≣ = the LATEST build's changelog in a flyout (Modrinth rides the scan; CF fetches on click) -->
+                                            <Border DockPanel.Dock="Right" Background="Transparent" Width="24" Height="24" CornerRadius="4"
+                                                    VerticalAlignment="Center" Cursor="Hand"
+                                                    PointerPressed="OnChangelog" ToolTip.Tip="Latest changelog">
+                                                <TextBlock Text="≣" Foreground="{StaticResource Dim}" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <!-- enable/disable = a real jar rename (.jar ⇄ .jar.disabled); reverts if the file is locked -->
+                                            <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding Enabled, Mode=TwoWay}" IsCheckedChanged="OnRowEnableToggled"
+                                                          OnContent="{x:Null}" OffContent="{x:Null}" MinWidth="0" Padding="0" Margin="8,0"
+                                                          VerticalAlignment="Center" ToolTip.Tip="Enable / disable this mod (renames the jar)"/>
+                                            <!-- colour carries the state: amber=update, green=current, grey=local/disabled.
+                                                 On an update row this Border IS the button (hit-testable only when
+                                                 HasUpdate) — press to update that one mod; hover highlights + underlines -->
+                                            <Border DockPanel.Dock="Right" Classes="statuscell" Width="84" Background="Transparent" CornerRadius="3"
+                                                    Padding="6,2" VerticalAlignment="Center"
+                                                    IsHitTestVisible="{Binding HasUpdate}" Cursor="Hand"
+                                                    PointerPressed="OnRowStatusPressed" ToolTip.Tip="Press to update this mod (old jar is backed up)">
+                                                <TextBlock Text="{Binding Status}" Foreground="{Binding StatusBrush}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                            </Border>
+                                            <TextBlock DockPanel.Dock="Right" Classes="coladded" Width="84" Text="{Binding AddedText}" Foreground="{StaticResource Dim}" FontSize="12" VerticalAlignment="Center"/>
+                                            <TextBlock DockPanel.Dock="Right" Classes="colsize" Width="64" Text="{Binding SizeText}" Foreground="{StaticResource Dim}" FontSize="12" VerticalAlignment="Center"/>
+                                            <TextBlock DockPanel.Dock="Right" Classes="colenv" Width="56" Text="{Binding Env}" Foreground="{StaticResource Dim}" FontSize="12" VerticalAlignment="Center"/>
+                                            <TextBlock DockPanel.Dock="Right" Width="120" Text="{Binding Latest}" Foreground="{StaticResource Dim}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
+                                            <TextBlock DockPanel.Dock="Right" Width="120" Text="{Binding Installed}" Foreground="{StaticResource Strong}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
+                                            <TextBlock DockPanel.Dock="Right" Classes="colauthor" Width="110" Text="{Binding Author}" Foreground="{StaticResource Mut}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
+
+                                            <StackPanel Spacing="3" VerticalAlignment="Center" Margin="0,0,12,0">
+                                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource Strong}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding File}" Foreground="{StaticResource Dim}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                        <!-- ============ Forks page (tab 1, AMT-07): our forks vs their upstreams, via ForkWatcher.
+                             One row per (fork × upstream); the registry is a user-editable forks.json. ============ -->
+                        <Grid Name="ForksPanel" IsVisible="False" RowDefinitions="Auto,Auto,Auto,*">
+                            <DockPanel Grid.Row="0" Margin="16,12,16,6">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <Border Classes="pbtn" Height="28" CornerRadius="4" Padding="12,0" Cursor="Hand"
+                                            PointerPressed="OnRecheckForks" ToolTip.Tip="Re-check every upstream">
+                                        <TextBlock Text="Recheck" Foreground="{StaticResource OnPrimary}" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <Border Background="{StaticResource Raised}" BorderBrush="{StaticResource Line2}" BorderThickness="1"
+                                            Height="28" CornerRadius="4" Padding="12,0" Cursor="Hand"
+                                            PointerPressed="OnEditForks" ToolTip.Tip="Open forks.json — add your forks there">
+                                        <TextBlock Text="Edit registry" Foreground="{StaticResource Mut}" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="Fork watch" Foreground="{StaticResource Ink}" FontWeight="Bold" FontSize="16"/>
+                                    <TextBlock Name="ForksStatus" Text="" Foreground="{StaticResource Dim}" FontSize="11.5"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <DockPanel Grid.Row="1" Margin="16,6" LastChildFill="True">
+                                <TextBlock DockPanel.Dock="Right" Width="30" Text="" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5"/>
+                                <TextBlock DockPanel.Dock="Right" Width="110" Text="VERDICT" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5"/>
+                                <TextBlock DockPanel.Dock="Right" Width="170" Text="UPSTREAM LATEST" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5" Margin="0,0,8,0"/>
+                                <TextBlock DockPanel.Dock="Right" Width="170" Text="FORKED FROM" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5" Margin="0,0,8,0"/>
+                                <TextBlock Text="FORK" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5"/>
+                            </DockPanel>
+                            <Border Grid.Row="2" Height="1" Background="{StaticResource Line}"/>
+                            <ListBox Name="ForksList" Grid.Row="3">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ForkRow">
+                                        <DockPanel Margin="16,12" LastChildFill="True">
+                                            <!-- ↗ opens the upstream release/tag page when the check found one -->
+                                            <Border DockPanel.Dock="Right" Background="Transparent" Width="24" Height="24" CornerRadius="4"
+                                                    VerticalAlignment="Center" Cursor="Hand" IsVisible="{Binding HasUrl}"
+                                                    PointerPressed="OnForkOpenUrl" ToolTip.Tip="Open the upstream page">
+                                                <TextBlock Text="↗" Foreground="{StaticResource Dim}" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <TextBlock DockPanel.Dock="Right" Width="110" Text="{Binding Verdict}" Foreground="{Binding VerdictBrush}"
+                                                       FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            <TextBlock DockPanel.Dock="Right" Width="170" Text="{Binding Latest}" Foreground="{StaticResource Strong}"
+                                                       FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
+                                            <TextBlock DockPanel.Dock="Right" Width="170" Text="{Binding Base}" Foreground="{StaticResource Dim}"
+                                                       FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
+                                            <StackPanel Spacing="3" VerticalAlignment="Center" Margin="0,0,12,0">
+                                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource Strong}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Detail}" Foreground="{StaticResource Dim}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+
+                        <!-- ============ Browse page (tab 2, AMT-08): search the whole catalogue across BOTH sites
+                             (CatalogueSearch — Modrinth drives, CF annotates/merges). ============ -->
+                        <Grid Name="BrowsePanel" IsVisible="False" RowDefinitions="Auto,Auto,*">
+                            <DockPanel Grid.Row="0" Margin="16,12,16,10">
+                                <Border DockPanel.Dock="Right" Classes="pbtn" Height="30" CornerRadius="4" Padding="14,0" Cursor="Hand"
+                                        Margin="10,0,0,0" PointerPressed="OnBrowseGo" ToolTip.Tip="Search both sites">
+                                    <TextBlock Text="Search" Foreground="{StaticResource OnPrimary}" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </Border>
+                                <Border Classes="searchfield" Height="30" BorderBrush="{StaticResource Line2}" BorderThickness="1" CornerRadius="4">
+                                    <Grid ColumnDefinitions="Auto,*" Margin="10,0">
+                                        <TextBlock Grid.Column="0" Text="⌕" Foreground="{StaticResource Dim}" FontSize="13.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBox Grid.Column="1" Name="BrowseBox" Classes="flat" KeyDown="OnBrowseKey"
+                                                 PlaceholderText="search the mod catalogue (Modrinth + CurseForge)…"
+                                                 Background="Transparent" BorderThickness="0" Foreground="{StaticResource Ink}"
+                                                 FontSize="12" FontWeight="SemiBold" Padding="0" MinHeight="0"
+                                                 VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </DockPanel>
+                            <StackPanel Grid.Row="1" Margin="16,0,16,8">
+                                <TextBlock Name="BrowseStatus" Text="Type a search and press Enter — results come from Modrinth (keyless) and CurseForge (with your key), merged."
+                                           Foreground="{StaticResource Dim}" FontSize="11.5"/>
+                            </StackPanel>
+                            <ListBox Name="BrowseList" Grid.Row="2" DoubleTapped="OnBrowseActivated">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:BrowseRow">
+                                        <DockPanel Margin="16,12" LastChildFill="True">
+                                            <Border DockPanel.Dock="Left" Width="34" Height="34" CornerRadius="6" ClipToBounds="True"
+                                                    Background="{StaticResource Raised}" VerticalAlignment="Center" Margin="0,0,12,0">
+                                                <Panel>
+                                                    <TextBlock Text="{Binding Initial}" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="15"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <Image Source="{Binding Icon}" Stretch="UniformToFill"/>
+                                                </Panel>
+                                            </Border>
+                                            <!-- site badges: open the mod's page on that site -->
+                                            <Border DockPanel.Dock="Right" Background="{StaticResource Raised}" CornerRadius="3" Padding="7,3"
+                                                    VerticalAlignment="Center" Margin="8,0,0,0" Cursor="Hand" IsVisible="{Binding OnCf}"
+                                                    PointerPressed="OnBrowseOpenCf" ToolTip.Tip="Open on CurseForge">
+                                                <TextBlock Text="CF" Foreground="{StaticResource Up}" FontSize="10" FontWeight="Bold"/>
+                                            </Border>
+                                            <Border DockPanel.Dock="Right" Background="{StaticResource Raised}" CornerRadius="3" Padding="7,3"
+                                                    VerticalAlignment="Center" Margin="8,0,0,0" Cursor="Hand" IsVisible="{Binding OnMr}"
+                                                    PointerPressed="OnBrowseOpenMr" ToolTip.Tip="Open on Modrinth">
+                                                <TextBlock Text="MR" Foreground="{StaticResource Ok}" FontSize="10" FontWeight="Bold"/>
+                                            </Border>
+                                            <TextBlock DockPanel.Dock="Right" Width="80" Text="{Binding Downloads}" Foreground="{StaticResource Dim}"
+                                                       FontSize="12" VerticalAlignment="Center" TextAlignment="Right"/>
+                                            <StackPanel Spacing="3" VerticalAlignment="Center" Margin="0,0,12,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="{Binding Title}" Foreground="{StaticResource Strong}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding Author}" Foreground="{StaticResource Dim}" FontSize="12" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Desc}" Foreground="{StaticResource Dim}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+
+                        <!-- ============ Cross-version page (tab 4, AMT-09): pick an installed mod, see every MC
+                             version each site has a build for. CF matrix rides the scan; Modrinth fetches on pick. -->
+                        <Grid Name="CrossPanel" IsVisible="False" ColumnDefinitions="300,1,*">
+                            <Grid Grid.Column="0" RowDefinitions="Auto,*">
+                                <Border Grid.Row="0" Classes="searchfield" Height="30" Margin="12,12,12,8"
+                                        BorderBrush="{StaticResource Line2}" BorderThickness="1" CornerRadius="4">
+                                    <Grid ColumnDefinitions="Auto,*" Margin="10,0">
+                                        <TextBlock Grid.Column="0" Text="⌕" Foreground="{StaticResource Dim}" FontSize="13.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBox Grid.Column="1" Name="CrossFilterBox" Classes="flat" TextChanged="OnCrossFilter"
+                                                 PlaceholderText="filter installed mods…" Background="Transparent" BorderThickness="0"
+                                                 Foreground="{StaticResource Ink}" FontSize="12" Padding="0" MinHeight="0"
+                                                 VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                                <ListBox Name="CrossModsList" Grid.Row="1" SelectionChanged="OnCrossModSelected">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ModRow">
+                                            <StackPanel Margin="12,8" Spacing="2">
+                                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource Strong}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Installed}" Foreground="{StaticResource Dim}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                            <Border Grid.Column="1" Background="{StaticResource Line}"/>
+                            <Grid Grid.Column="2" RowDefinitions="Auto,Auto,Auto,*">
+                                <StackPanel Grid.Row="0" Margin="16,12,16,8" Spacing="2">
+                                    <TextBlock Name="CrossTitle" Text="Cross-version" Foreground="{StaticResource Ink}" FontWeight="Bold" FontSize="16"/>
+                                    <TextBlock Name="CrossStatus" Text="Pick an installed mod to see which Minecraft versions each site has builds for."
+                                               Foreground="{StaticResource Dim}" FontSize="11.5"/>
+                                </StackPanel>
+                                <DockPanel Grid.Row="1" Margin="16,6" LastChildFill="True">
+                                    <TextBlock DockPanel.Dock="Left" Width="110" Text="MC VERSION" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5"/>
+                                    <TextBlock DockPanel.Dock="Right" Width="200" Text="MODRINTH" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5"/>
+                                    <TextBlock Text="CURSEFORGE" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5" Margin="0,0,8,0"/>
+                                </DockPanel>
+                                <Border Grid.Row="2" Height="1" Background="{StaticResource Line}"/>
+                                <ListBox Name="CrossMatrixList" Grid.Row="3">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:CrossRow">
+                                            <DockPanel Margin="16,8" LastChildFill="True">
+                                                <TextBlock DockPanel.Dock="Left" Width="110" Text="{Binding Mc}" Foreground="{Binding McBrush}" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center"/>
+                                                <TextBlock DockPanel.Dock="Right" Width="200" Text="{Binding Mr}" Foreground="{StaticResource Dim}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Cf}" Foreground="{StaticResource Dim}" FontSize="12" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </Grid>
+
+                        <!-- ============ Data packs (tab 5) + Resource packs (tab 6), AMT-10: read-only folder
+                             scans (MC rewrites its own pack lists when edited behind its back — v1 observes). -->
+                        <Grid Name="DataPacksPanel" IsVisible="False" RowDefinitions="Auto,Auto,*">
+                            <DockPanel Grid.Row="0" Margin="16,12,16,8">
+                                <Border DockPanel.Dock="Right" Background="{StaticResource Raised}" BorderBrush="{StaticResource Line2}" BorderThickness="1"
+                                        Height="28" CornerRadius="4" Padding="12,0" Cursor="Hand"
+                                        PointerPressed="OnOpenDataPacksFolder" ToolTip.Tip="Open the Paxi datapacks folder">
+                                    <TextBlock Text="Open folder" Foreground="{StaticResource Mut}" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="Data packs" Foreground="{StaticResource Ink}" FontWeight="Bold" FontSize="16"/>
+                                    <TextBlock Name="DataPacksStatus" Text="" Foreground="{StaticResource Dim}" FontSize="11.5"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <Border Grid.Row="1" Height="1" Background="{StaticResource Line}"/>
+                            <ListBox Name="DataPacksList" Grid.Row="2" DoubleTapped="OnPackActivated">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:PackRow">
+                                        <DockPanel Margin="16,10" LastChildFill="True">
+                                            <TextBlock DockPanel.Dock="Right" Width="70" Text="{Binding Size}" Foreground="{StaticResource Dim}" FontSize="12" VerticalAlignment="Center" TextAlignment="Right"/>
+                                            <TextBlock DockPanel.Dock="Right" Width="70" Text="{Binding Format}" Foreground="{StaticResource Dim}" FontSize="12" VerticalAlignment="Center"/>
+                                            <Border DockPanel.Dock="Right" Background="{StaticResource Raised}" CornerRadius="3" Padding="7,3"
+                                                    VerticalAlignment="Center" Margin="0,0,12,0">
+                                                <TextBlock Text="{Binding Source}" Foreground="{StaticResource Mut}" FontSize="10" FontWeight="Bold"/>
+                                            </Border>
+                                            <StackPanel Spacing="3" VerticalAlignment="Center" Margin="0,0,12,0">
+                                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource Strong}" FontWeight="SemiBold" FontSize="13.5" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Desc}" Foreground="{StaticResource Dim}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+
+                        <Grid Name="ResPacksPanel" IsVisible="False" RowDefinitions="Auto,Auto,*">
+                            <DockPanel Grid.Row="0" Margin="16,12,16,8">
+                                <Border DockPanel.Dock="Right" Background="{StaticResource Raised}" BorderBrush="{StaticResource Line2}" BorderThickness="1"
+                                        Height="28" CornerRadius="4" Padding="12,0" Cursor="Hand"
+                                        PointerPressed="OnOpenResPacksFolder" ToolTip.Tip="Open the resourcepacks folder">
+                                    <TextBlock Text="Open folder" Foreground="{StaticResource Mut}" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="Resource packs" Foreground="{StaticResource Ink}" FontWeight="Bold" FontSize="16"/>
+                                    <TextBlock Name="ResPacksStatus" Text="" Foreground="{StaticResource Dim}" FontSize="11.5"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <Border Grid.Row="1" Height="1" Background="{StaticResource Line}"/>
+                            <ListBox Name="ResPacksList" Grid.Row="2" DoubleTapped="OnPackActivated">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:PackRow">
+                                        <DockPanel Margin="16,10" LastChildFill="True">
+                                            <TextBlock DockPanel.Dock="Right" Width="70" Text="{Binding Size}" Foreground="{StaticResource Dim}" FontSize="12" VerticalAlignment="Center" TextAlignment="Right"/>
+                                            <TextBlock DockPanel.Dock="Right" Width="70" Text="{Binding Format}" Foreground="{StaticResource Dim}" FontSize="12" VerticalAlignment="Center"/>
+                                            <Border DockPanel.Dock="Right" Background="{Binding BadgeBg}" CornerRadius="3" Padding="7,3"
+                                                    VerticalAlignment="Center" Margin="0,0,12,0" IsVisible="{Binding HasBadge}">
+                                                <TextBlock Text="{Binding Badge}" Foreground="{Binding BadgeFg}" FontSize="10" FontWeight="Bold"/>
+                                            </Border>
+                                            <StackPanel Spacing="3" VerticalAlignment="Center" Margin="0,0,12,0">
+                                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource Strong}" FontWeight="SemiBold" FontSize="13.5" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Desc}" Foreground="{StaticResource Dim}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+
+                        <!-- ============ Tools page (tab 7, AMT-11): quick actions the app already has the data
+                             for — open folders, jump to key files, re-run checks. A card grid, each card a shortcut. -->
+                        <ScrollViewer Name="ToolsPanel" IsVisible="False">
+                            <StackPanel Margin="24,20" MaxWidth="900">
+                                <TextBlock Text="Tools" Classes="setpagetitle"/>
+                                <TextBlock Text="Quick actions for this instance." Classes="setpagesub" Margin="0,6,0,0"/>
+
+                                <TextBlock Text="Folders" Classes="setsection"/>
+                                <WrapPanel Name="ToolsFolders"/>
+
+                                <TextBlock Text="Files" Classes="setsection"/>
+                                <WrapPanel Name="ToolsFiles"/>
+
+                                <TextBlock Text="Actions" Classes="setsection"/>
+                                <WrapPanel Name="ToolsActions"/>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <StackPanel Name="SoonPanel" IsVisible="False" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Name="SoonLabel" Text="coming soon" Foreground="{StaticResource Dim}" FontSize="14"/>
+                        </StackPanel>
+
+                        <!-- ============ Settings page (tab 8) — the researched card model (AMT-SETTINGS-DESIGN-SPEC.md):
+                             3-elevation (page → card → field), sections match the future sidebar categories 1:1,
+                             fields auto-save on blur (no Save button — the ⟳ toolbar owns rescanning). ============ -->
+                        <ScrollViewer Name="SettingsPanel" IsVisible="False">
+                            <StackPanel Margin="32,28" MaxWidth="720" HorizontalAlignment="Left">
+                                <TextBlock Classes="setpagetitle" Text="Settings"/>
+                                <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
+                                    <TextBlock Classes="setpagesub" Text="Changes save automatically."/>
+                                    <TextBlock Name="SettingsMsg" Classes="setpagesub" Foreground="{StaticResource Ok}" Text=""/>
+                                </StackPanel>
+
+                                <TextBlock Name="SecInstance" Classes="setsection" Text="Instance" Margin="0,24,0,10"/>
+                                <StackPanel Spacing="8">
+                                    <Border Classes="setcard">
+                                        <StackPanel>
+                                            <TextBlock Classes="settitle" Text="Instance folder"/>
+                                            <TextBlock Classes="setdesc" Margin="0,4,0,12" Text="The Minecraft instance AMT scans and updates — the folder holding mods\ (and, for CurseForge packs, minecraftinstance.json)."/>
+                                            <Grid ColumnDefinitions="*,8,Auto,8,Auto">
+                                                <TextBox Grid.Column="0" Name="SetInstance" Classes="set" PlaceholderText="C:\...\Instances\My Pack"/>
+                                                <Border Grid.Column="2" Classes="fieldbtn" VerticalAlignment="Stretch" Cursor="Hand" PointerPressed="OnBrowseInstance" ToolTip.Tip="Browse…">
+                                                    <TextBlock Text="📁" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <Border Grid.Column="4" Classes="fieldbtn" VerticalAlignment="Stretch" Cursor="Hand" PointerPressed="OnOpenInstanceFolder" ToolTip.Tip="Open in Explorer">
+                                                    <TextBlock Text="↗" Foreground="{StaticResource Mut}" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Classes="setcard">
+                                        <StackPanel>
+                                            <TextBlock Classes="settitle" Text="Game target"/>
+                                            <TextBlock Classes="setdesc" Margin="0,4,0,12" Text="These scope every “latest version” lookup — a mismatch reports the wrong latest."/>
+                                            <Grid ColumnDefinitions="200,16,200">
+                                                <!-- AMT-17: MC-version AUTOCOMPLETE — type-to-filter over Mojang's live release
+                                                     list (an editable ComboBox doesn't filter as you type; AutoCompleteBox does) -->
+                                                <AutoCompleteBox Grid.Column="0" Name="SetMcVersion" MinHeight="34" HorizontalAlignment="Stretch"
+                                                                 FilterMode="ContainsOrdinal" MinimumPrefixLength="0" MaxDropDownHeight="260"
+                                                                 PlaceholderText="1.21.1" Background="{StaticResource Raised}" BorderBrush="{StaticResource Line2}"
+                                                                 BorderThickness="1" CornerRadius="4" Foreground="{StaticResource Ink}" FontSize="13"/>
+                                                <ComboBox Grid.Column="2" Name="SetLoader" IsEditable="True" MinHeight="34" HorizontalAlignment="Stretch"
+                                                          Background="{StaticResource Raised}" BorderBrush="{StaticResource Line2}" BorderThickness="1"
+                                                          CornerRadius="4" Foreground="{StaticResource Ink}" FontSize="13"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <TextBlock Name="SecSources" Classes="setsection" Text="Update sources"/>
+                                <Border Classes="setcard">
+                                    <StackPanel>
+                                        <TextBlock Classes="settitle" Text="CurseForge API key"/>
+                                        <TextBlock Classes="setdesc" Margin="0,4,0,4" Text="Stored locally and only ever sent to CurseForge; unlocks live CF checks (Modrinth needs no key)."/>
+                                        <TextBlock Text="Get a free key at console.curseforge.com → API keys" Foreground="{StaticResource AccentText}" FontSize="12.5"
+                                                   TextDecorations="Underline" Cursor="Hand" PointerPressed="OnOpenKeyPage" Margin="0,0,0,12" Effect="{x:Null}"/>
+                                        <Grid ColumnDefinitions="*,8,Auto">
+                                            <TextBox Grid.Column="0" Name="SetCfKey" Classes="set" PasswordChar="•" PlaceholderText="Paste your API key"/>
+                                            <Border Grid.Column="2" Name="KeyReveal" Classes="fieldbtn" VerticalAlignment="Stretch" Cursor="Hand" PointerPressed="OnToggleKeyReveal" ToolTip.Tip="Show / hide">
+                                                <TextBlock Text="👁" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Name="SecDownloads" Classes="setsection" Text="Downloads"/>
+                                <Border Classes="setcard">
+                                    <StackPanel>
+                                        <TextBlock Classes="settitle" Text="Download folder"/>
+                                        <TextBlock Classes="setdesc" Margin="0,4,0,12" Text="Where Update all stages downloads and keeps the timestamped jar backups."/>
+                                        <Grid ColumnDefinitions="*,8,Auto,8,Auto">
+                                            <TextBox Grid.Column="0" Name="SetDownloadDir" Classes="set"/>
+                                            <Border Grid.Column="2" Classes="fieldbtn" VerticalAlignment="Stretch" Cursor="Hand" PointerPressed="OnBrowseDownload" ToolTip.Tip="Browse…">
+                                                <TextBlock Text="📁" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <Border Grid.Column="4" Classes="fieldbtn" VerticalAlignment="Stretch" Cursor="Hand" PointerPressed="OnOpenDownloadFolder" ToolTip.Tip="Open in Explorer">
+                                                <TextBlock Text="↗" Foreground="{StaticResource Mut}" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Name="SecLaunch" Classes="setsection" Text="Launch"/>
+                                <Border Classes="setcard">
+                                    <StackPanel>
+                                        <TextBlock Classes="settitle" Text="Launch command"/>
+                                        <TextBlock Classes="setdesc" Margin="0,4,0,12" Text="The command the ▶ Play button runs, in the instance folder. Placeholders {accessToken} {username} {uuid} {instance} are filled from the signed-in account. Example: &quot;C:\path\java.exe&quot; @.uvrun\launch-world.args"/>
+                                        <TextBox Name="SetLaunchCmd" Classes="set" PlaceholderText="&quot;…\java.exe&quot; @.uvrun\launch-world.args"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Classes="setcard">
+                                    <StackPanel>
+                                        <TextBlock Classes="settitle" Text="Minecraft account"/>
+                                        <TextBlock Name="AccountDesc" Classes="setdesc" Margin="0,4,0,12"
+                                                   Text="Sign in with Microsoft to launch authenticated. Your password never touches this app — you sign in on Microsoft's own site, and only a session token is kept, encrypted, in your OS secure store."/>
+                                        <StackPanel Orientation="Horizontal" Spacing="12">
+                                            <Border Name="AccountBtn" Classes="pbtn" Height="32" CornerRadius="4" Padding="16,0"
+                                                    Cursor="Hand" PointerPressed="OnAccountButton">
+                                                <TextBlock Name="AccountBtnText" Text="Sign in" Foreground="{StaticResource OnPrimary}" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <TextBlock Name="AccountStatus" Text="" Foreground="{StaticResource Mut}" FontSize="12.5" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Name="SecAppearance" Classes="setsection" Text="Appearance"/>
+                                <Border Classes="setcard">
+                                    <StackPanel>
+                                        <TextBlock Classes="settitle" Text="Row density"/>
+                                        <TextBlock Classes="setdesc" Margin="0,4,0,12" Text="How much breathing room each mod row gets in the installed table."/>
+                                        <ComboBox Name="SetDensity" MinHeight="34" Width="220" HorizontalAlignment="Left"
+                                                  Background="{StaticResource Raised}" BorderBrush="{StaticResource Line2}" BorderThickness="1"
+                                                  CornerRadius="4" Foreground="{StaticResource Ink}" FontSize="13" SelectionChanged="OnDensityChanged">
+                                            <ComboBoxItem Content="Compact"/>
+                                            <ComboBoxItem Content="Cozy"/>
+                                            <ComboBoxItem Content="Comfortable"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Border>
+                                <Border Classes="setcard">
+                                    <StackPanel>
+                                        <TextBlock Classes="settitle" Text="Table columns"/>
+                                        <TextBlock Classes="setdesc" Margin="0,4,0,12" Text="Which optional columns show in the installed table (also on the ▥ button above the table)."/>
+                                        <WrapPanel>
+                                            <CheckBox Name="SetColAuthor" Content="Author" Margin="0,0,20,0" IsCheckedChanged="OnColCheck" Tag="author"/>
+                                            <CheckBox Name="SetColEnv" Content="Environment" Margin="0,0,20,0" IsCheckedChanged="OnColCheck" Tag="env"/>
+                                            <CheckBox Name="SetColSize" Content="Size" Margin="0,0,20,0" IsCheckedChanged="OnColCheck" Tag="size"/>
+                                            <CheckBox Name="SetColAdded" Content="Date added" IsCheckedChanged="OnColCheck" Tag="added"/>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Feedback is a Settings SECTION now (author: "feedback should be a settings sub tab"),
+                                     not its own top-level tab -->
+                                <TextBlock Name="SecFeedback" Classes="setsection" Text="Feedback"/>
+                                <Border Classes="setcard">
+                                    <StackPanel>
+                                        <TextBlock Classes="settitle" Text="Send feedback"/>
+                                        <TextBlock Classes="setdesc" Margin="0,4,0,12" Text="Bugs, ideas, anything. Saved locally to your feedback file — nothing is sent anywhere automatically."/>
+                                        <TextBox Name="FeedbackBox" Classes="set" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="80"
+                                                 PlaceholderText="What's on your mind?"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,10,0,0">
+                                            <Border Classes="pbtn" Height="32" CornerRadius="4" Padding="16,0"
+                                                    PointerPressed="OnSendFeedback" Cursor="Hand" ToolTip.Tip="Save this feedback to your local feedback file">
+                                                <TextBlock Text="Save feedback" Foreground="{StaticResource OnPrimary}" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <TextBlock Name="FeedbackMsg" Classes="setpagesub" Foreground="{StaticResource Ok}" Text="" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+            </DockPanel>
+        </Border>
+
+        <!-- resize grips: only these 6px strips catch input; the empty centre falls through -->
+        <Grid ColumnDefinitions="6,*,6" RowDefinitions="6,*,6">
+            <Border Grid.Row="0" Grid.Column="0" Background="Transparent" Tag="NorthWest" Cursor="TopLeftCorner" PointerPressed="OnResizePressed"/>
+            <Border Grid.Row="0" Grid.Column="1" Background="Transparent" Tag="North" Cursor="SizeNorthSouth" PointerPressed="OnResizePressed"/>
+            <Border Grid.Row="0" Grid.Column="2" Background="Transparent" Tag="NorthEast" Cursor="TopRightCorner" PointerPressed="OnResizePressed"/>
+            <Border Grid.Row="1" Grid.Column="0" Background="Transparent" Tag="West" Cursor="SizeWestEast" PointerPressed="OnResizePressed"/>
+            <Border Grid.Row="1" Grid.Column="2" Background="Transparent" Tag="East" Cursor="SizeWestEast" PointerPressed="OnResizePressed"/>
+            <Border Grid.Row="2" Grid.Column="0" Background="Transparent" Tag="SouthWest" Cursor="BottomLeftCorner" PointerPressed="OnResizePressed"/>
+            <Border Grid.Row="2" Grid.Column="1" Background="Transparent" Tag="South" Cursor="SizeNorthSouth" PointerPressed="OnResizePressed"/>
+            <Border Grid.Row="2" Grid.Column="2" Background="Transparent" Tag="SouthEast" Cursor="BottomRightCorner" PointerPressed="OnResizePressed"/>
+        </Grid>
+
+        <!-- AMT-16 global-search results: an in-window overlay under the search field (an OS-window Popup would
+             miss the theme + light-dismiss on focus loss). Sits at the top-left, high ZIndex, hidden until the
+             search box has a query. Filled + toggled in code by UpdateGlobalSearch. -->
+        <Border Name="GlobalSearchOverlay" IsVisible="False" ZIndex="50"
+                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,94,0,0"
+                Width="470" Background="{StaticResource Panel}" BorderBrush="{StaticResource Line2}"
+                BorderThickness="1" CornerRadius="6" BoxShadow="0 6 20 0 #66000000">
+            <ScrollViewer MaxHeight="440">
+                <StackPanel Name="GlobalSearchResults" Margin="6"/>
+            </ScrollViewer>
+        </Border>
+    </Panel>
+</Window>

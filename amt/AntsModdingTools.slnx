@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Amt.App/Amt.App.csproj" />
+  <Project Path="Amt.Core/Amt.Core.csproj" />
+</Solution>

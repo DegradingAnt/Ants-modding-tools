@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Version>0.5.6</Version>   <!-- bump every patch/update: the status bar reads this at runtime -->
+    <Nullable>enable</Nullable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- human-readable FILE name (author rule): AntsModdingTools.exe. NOTE: spaces/apostrophes in the
+         assembly name BREAK Avalonia's avares:// resource URIs (verified: /Assets/wnl.ico lookup crashed at
+         startup) — so the file name is the URI-safe spelling; Task Manager still shows "Ant's Modding Tools"
+         via AssemblyTitle, and a publish step can name the shipped exe with the apostrophe freely. -->
+    <AssemblyName>AntsModdingTools</AssemblyName>
+    <!-- friendly process name in Task Manager (FileDescription) + Explorer details; exe stays Amt.App.exe -->
+    <AssemblyTitle>Ant's Modding Tools</AssemblyTitle>
+    <Product>Ant's Modding Tools</Product>
+    <Company>DegradingAnt</Company>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- exe icon (Task Manager / Explorer / taskbar-when-pinned) — placeholder WNL badge, real logo = task #365 -->
+    <ApplicationIcon>Assets\wnl.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!-- embed Assets/ so the runtime WindowIcon (taskbar while running) can load /Assets/wnl.ico -->
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.0.5" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.0.5" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.5" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Amt.Core\Amt.Core.csproj" />
+  </ItemGroup>
+</Project>
