@@ -28,8 +28,16 @@
         <SolidColorBrush x:Key="AccentText" Color="#b18ad1"/>
         <SolidColorBrush x:Key="Up"        Color="#e6b450"/>
         <SolidColorBrush x:Key="RowHover"  Color="#2f2f2f"/>
+        <!-- Err was code-only (MainWindow.axaml.cs) — promoted to a XAML brush so status chips can be declarative -->
+        <SolidColorBrush x:Key="Err"       Color="#d9534f"/>
         <!-- the installed-row margin — DYNAMIC so the Settings density control can retune every row live -->
         <Thickness x:Key="RowMargin">16,12</Thickness>
+        <!-- shared column widths (AMT-21) so a table's header cells + row cells can never drift out of alignment;
+             NOT Grid.SharedSizeGroup (that has scroll bugs + defeats ListBox virtualization) -->
+        <x:Double x:Key="WStatus">110</x:Double>
+        <x:Double x:Key="WVersion">170</x:Double>
+        <x:Double x:Key="WSize">70</x:Double>
+        <x:Double x:Key="WFormat">90</x:Double>
     </Application.Resources>
 
     <Application.Styles>

@@ -17,7 +17,7 @@ public static class HttpJson
     private static HttpClient Create()
     {
         var c = new HttpClient { Timeout = TimeSpan.FromSeconds(40) };
-        c.DefaultRequestHeaders.UserAgent.ParseAdd("AntsModdingTools/0.1 (github.com/DegradingAnt/Ant-s-modding-tools)");
+        c.DefaultRequestHeaders.UserAgent.ParseAdd("AntsModdingTools/0.1 (github.com/DegradingAnt/Ants-modding-tools)");
         return c;
     }
 

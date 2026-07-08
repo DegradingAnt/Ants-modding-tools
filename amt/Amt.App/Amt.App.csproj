@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
-    <Version>0.5.6</Version>   <!-- bump every patch/update: the status bar reads this at runtime -->
+    <Version>0.5.7</Version>   <!-- bump every patch/update: the status bar reads this at runtime -->
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <!-- human-readable FILE name (author rule): AntsModdingTools.exe. NOTE: spaces/apostrophes in the

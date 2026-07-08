@@ -264,6 +264,35 @@
             <Setter Property="Background" Value="#14ffffff"/>
         </Style>
 
+        <!-- ============ AMT-21 shared new-tab design system (harmonises the new tabs with the Installed
+             language WITHOUT touching Installed): page header · column header · status chip · loading bar. ==== -->
+        <!-- per-page headline for the list tabs (distinct from Settings' 22px setpagetitle) -->
+        <Style Selector="TextBlock.pagehead">
+            <Setter Property="FontSize" Value="16.5"/><Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        </Style>
+        <!-- ONE column-header label — pixel-identical to Installed's HdrMod/HdrStatus (keeps the text shadow) -->
+        <Style Selector="TextBlock.colhead">
+            <Setter Property="Foreground" Value="{StaticResource Dim}"/>
+            <Setter Property="FontWeight" Value="Bold"/><Setter Property="FontSize" Value="10.5"/>
+        </Style>
+        <!-- status chip: a Raised pill with a coloured dot + label. The Kind class colours the dot (Forks verdict,
+             pack Active, Browse installed, Cross cells all reuse this one surface). -->
+        <Style Selector="Border.chip">
+            <Setter Property="CornerRadius" Value="3"/><Setter Property="Padding" Value="8,2"/>
+            <Setter Property="Background" Value="{StaticResource Raised}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/><Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+        <Style Selector="Border.chip.ok Ellipse"><Setter Property="Fill" Value="{StaticResource Ok}"/></Style>
+        <Style Selector="Border.chip.up Ellipse"><Setter Property="Fill" Value="{StaticResource Up}"/></Style>
+        <Style Selector="Border.chip.err Ellipse"><Setter Property="Fill" Value="{StaticResource Err}"/></Style>
+        <Style Selector="Border.chip.dim Ellipse"><Setter Property="Fill" Value="{StaticResource Dim}"/></Style>
+        <!-- non-blocking loading bar docked at the top of a content region -->
+        <Style Selector="ProgressBar.loadbar">
+            <Setter Property="Height" Value="2"/><Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource Primary}"/><Setter Property="CornerRadius" Value="0"/>
+        </Style>
+
         <!-- AMT-06 column picker: the ▥ header button toggles these no-* classes on the mod list, and every
              row's matching cells collapse together — one class flip drives all ~800 rows -->
         <Style Selector="ListBox.no-author TextBlock.colauthor"><Setter Property="IsVisible" Value="False"/></Style>
@@ -681,7 +710,10 @@
                         <!-- ============ Forks page (tab 1, AMT-07): our forks vs their upstreams, via ForkWatcher.
                              One row per (fork × upstream); the registry is a user-editable forks.json. ============ -->
                         <Grid Name="ForksPanel" IsVisible="False" RowDefinitions="Auto,Auto,Auto,*">
-                            <DockPanel Grid.Row="0" Margin="16,12,16,6">
+                            <!-- AMT-21 proof tab: the shared new-tab language — .pagehead band, aligned .colhead,
+                                 34px row icon, verdict as a status .chip, {DynamicResource RowMargin}, .loadbar,
+                                 empty state. Matches Installed WITHOUT touching it. -->
+                            <DockPanel Grid.Row="0" Margin="16,12,16,8" LastChildFill="True">
                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                     <Border Classes="pbtn" Height="28" CornerRadius="4" Padding="12,0" Cursor="Hand"
                                             PointerPressed="OnRecheckForks" ToolTip.Tip="Re-check every upstream">
@@ -693,43 +725,70 @@
                                         <TextBlock Text="Edit registry" Foreground="{StaticResource Mut}" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                     </Border>
                                 </StackPanel>
-                                <StackPanel Spacing="2">
-                                    <TextBlock Text="Fork watch" Foreground="{StaticResource Ink}" FontWeight="Bold" FontSize="16"/>
-                                    <TextBlock Name="ForksStatus" Text="" Foreground="{StaticResource Dim}" FontSize="11.5"/>
+                                <StackPanel Spacing="2" VerticalAlignment="Center">
+                                    <TextBlock Classes="pagehead" Text="Forks"/>
+                                    <TextBlock Name="ForksStatus" Classes="setpagesub" Text=""/>
                                 </StackPanel>
                             </DockPanel>
-                            <DockPanel Grid.Row="1" Margin="16,6" LastChildFill="True">
-                                <TextBlock DockPanel.Dock="Right" Width="30" Text="" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5"/>
-                                <TextBlock DockPanel.Dock="Right" Width="110" Text="VERDICT" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5"/>
-                                <TextBlock DockPanel.Dock="Right" Width="170" Text="UPSTREAM LATEST" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5" Margin="0,0,8,0"/>
-                                <TextBlock DockPanel.Dock="Right" Width="170" Text="FORKED FROM" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5" Margin="0,0,8,0"/>
-                                <TextBlock Text="FORK" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="10.5"/>
+                            <!-- aligned column header: 46px icon spacer, right-docked cells mirror the row cells -->
+                            <DockPanel Grid.Row="1" Margin="16,4,16,4" LastChildFill="True">
+                                <Border DockPanel.Dock="Left" Width="46"/>
+                                <TextBlock DockPanel.Dock="Right" Width="30" Text="" Classes="colhead"/>
+                                <TextBlock DockPanel.Dock="Right" Width="{StaticResource WStatus}" Text="STATUS" Classes="colhead"/>
+                                <TextBlock DockPanel.Dock="Right" Width="{StaticResource WVersion}" Text="UPSTREAM LATEST" Classes="colhead" Margin="0,0,8,0"/>
+                                <TextBlock DockPanel.Dock="Right" Width="{StaticResource WVersion}" Text="FORKED FROM" Classes="colhead" Margin="0,0,8,0"/>
+                                <TextBlock Text="FORK" Classes="colhead"/>
                             </DockPanel>
-                            <Border Grid.Row="2" Height="1" Background="{StaticResource Line}"/>
-                            <ListBox Name="ForksList" Grid.Row="3">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:ForkRow">
-                                        <DockPanel Margin="16,12" LastChildFill="True">
-                                            <!-- ↗ opens the upstream release/tag page when the check found one -->
-                                            <Border DockPanel.Dock="Right" Background="Transparent" Width="24" Height="24" CornerRadius="4"
-                                                    VerticalAlignment="Center" Cursor="Hand" IsVisible="{Binding HasUrl}"
-                                                    PointerPressed="OnForkOpenUrl" ToolTip.Tip="Open the upstream page">
-                                                <TextBlock Text="↗" Foreground="{StaticResource Dim}" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <TextBlock DockPanel.Dock="Right" Width="110" Text="{Binding Verdict}" Foreground="{Binding VerdictBrush}"
-                                                       FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                            <TextBlock DockPanel.Dock="Right" Width="170" Text="{Binding Latest}" Foreground="{StaticResource Strong}"
-                                                       FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
-                                            <TextBlock DockPanel.Dock="Right" Width="170" Text="{Binding Base}" Foreground="{StaticResource Dim}"
-                                                       FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
-                                            <StackPanel Spacing="3" VerticalAlignment="Center" Margin="0,0,12,0">
-                                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource Strong}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock Text="{Binding Detail}" Foreground="{StaticResource Dim}" FontSize="12" TextTrimming="CharacterEllipsis"/>
-                                            </StackPanel>
-                                        </DockPanel>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
+                            <Panel Grid.Row="2">
+                                <Border Height="1" Background="{StaticResource Line}" VerticalAlignment="Bottom"/>
+                                <ProgressBar Name="ForksLoad" Classes="loadbar" IsVisible="False" IsIndeterminate="False" VerticalAlignment="Bottom"/>
+                            </Panel>
+                            <Panel Grid.Row="3">
+                                <ListBox Name="ForksList">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ForkRow">
+                                            <DockPanel Margin="{DynamicResource RowMargin}" LastChildFill="True">
+                                                <!-- 34px repo icon (monogram — forks have no thumbnail); matches the Installed row anatomy -->
+                                                <Border DockPanel.Dock="Left" Width="34" Height="34" CornerRadius="6"
+                                                        Background="{StaticResource Raised}" VerticalAlignment="Center" Margin="0,0,12,0">
+                                                    <TextBlock Text="{Binding Initial}" Foreground="{StaticResource Dim}" FontWeight="Bold" FontSize="15"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <!-- ↗ opens the upstream release/tag page when the check found one -->
+                                                <Border DockPanel.Dock="Right" Background="Transparent" Width="24" Height="24" CornerRadius="4"
+                                                        VerticalAlignment="Center" Cursor="Hand" IsVisible="{Binding HasUrl}"
+                                                        PointerPressed="OnForkOpenUrl" ToolTip.Tip="Open the upstream page">
+                                                    <TextBlock Text="↗" Foreground="{StaticResource Dim}" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <!-- verdict as a status chip: dot (colour = verdict) + friendly label — the loudest cell -->
+                                                <Border DockPanel.Dock="Right" Classes="chip" Width="{StaticResource WStatus}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                        <Ellipse Width="6" Height="6" Fill="{Binding VerdictBrush}"/>
+                                                        <TextBlock Text="{Binding Label}" Foreground="{StaticResource Mut}" FontSize="11.5" FontWeight="SemiBold"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <TextBlock DockPanel.Dock="Right" Width="{StaticResource WVersion}" Text="{Binding Latest}" Foreground="{StaticResource Strong}"
+                                                           FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
+                                                <TextBlock DockPanel.Dock="Right" Width="{StaticResource WVersion}" Text="{Binding Base}" Foreground="{StaticResource Dim}"
+                                                           FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
+                                                <StackPanel Spacing="3" VerticalAlignment="Center" Margin="0,0,12,0">
+                                                    <TextBlock Text="{Binding Name}" Foreground="{StaticResource Strong}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding Detail}" Foreground="{StaticResource Dim}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <!-- empty state (no forks registered) -->
+                                <StackPanel Name="ForksEmpty" IsVisible="False" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" MaxWidth="360">
+                                    <TextBlock Text="⑃" Foreground="{StaticResource Dim}" FontSize="46" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="No forks tracked yet" Foreground="{StaticResource Ink}" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Watch a fork to see when its upstream ships a release you should re-port." Foreground="{StaticResource Dim}" FontSize="12.5" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    <Border Classes="pbtn" Height="30" CornerRadius="4" Padding="16,0" Cursor="Hand" HorizontalAlignment="Center" PointerPressed="OnEditForks">
+                                        <TextBlock Text="Add a fork" Foreground="{StaticResource OnPrimary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    </Border>
+                                </StackPanel>
+                            </Panel>
                         </Grid>
 
                         <!-- ============ Browse page (tab 2, AMT-08): search the whole catalogue across BOTH sites

@@ -23,7 +23,7 @@ public sealed class SelfUpdateInfo
 /// (self-replacing an in-use exe is platform-fiddly and a later refinement).
 public static class SelfUpdate
 {
-    private const string Repo = "DegradingAnt/Ant-s-modding-tools";
+    private const string Repo = "DegradingAnt/Ants-modding-tools";
 
     public static async Task<SelfUpdateInfo> CheckAsync(string currentVersion, CancellationToken ct = default)
     {

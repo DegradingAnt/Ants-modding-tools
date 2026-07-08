@@ -91,6 +91,14 @@ public sealed class ForkRow
     public IBrush? VerdictBrush { get; init; }
     public string Url { get; init; } = "";
     public bool HasUrl => Url.Length > 0;
+
+    // AMT-21 cohesion: a monogram for the 34px row icon, + a friendly chip label for the verdict
+    public string Initial => Name.Length > 0 ? Name[..1].ToUpperInvariant() : "?";
+    public string Label => Verdict switch
+    {
+        "UPDATE" => "Behind", "current" => "Up to date", "no-upstream" => "No upstream",
+        "set-base" => "Set base", "ahead" => "Ahead", "review" => "Review", _ => Verdict,
+    };
 }
 
 /// One Browse-page result: a catalogue hit from either (or both) sites. Only the streamed icon mutates.
@@ -1155,6 +1163,8 @@ public partial class MainWindow : Window
         ForksList.ItemsSource = _forkRows;
         _forkRows.Clear();
         ForksStatus.Text = "checking upstreams…";
+        ForksEmpty.IsVisible = false;
+        ForksLoad.IsVisible = true; ForksLoad.IsIndeterminate = true;   // AMT-21 non-blocking loading bar
 
         var registry = LoadForksRegistry();
         var settings = _settings;
@@ -1186,9 +1196,11 @@ public partial class MainWindow : Window
                 });
             }
 
+        ForksLoad.IsIndeterminate = false; ForksLoad.IsVisible = false;   // stop the bar (guard against idle CPU)
+        ForksEmpty.IsVisible = _forkRows.Count == 0;
         ForksStatus.Text = results.Count == 0
-            ? $"no forks registered — Edit registry opens {ForksFile}"
-            : $"{results.Count} forks · {_forkRows.Count} upstreams · {updates} with a newer upstream";
+            ? "no forks tracked yet"
+            : $"{results.Count} forks · {_forkRows.Count} upstreams · {updates} behind upstream";
         _forksChecking = false;
     }
 
@@ -1444,7 +1456,7 @@ public partial class MainWindow : Window
             _appUpdate = new SelfUpdateInfo
             {
                 HasUpdate = true, CurrentVersion = current, LatestVersion = "9.9.9",
-                ReleaseUrl = "https://github.com/DegradingAnt/Ant-s-modding-tools/releases",
+                ReleaseUrl = "https://github.com/DegradingAnt/Ants-modding-tools/releases",
                 Notes = "• Example release notes\n• Wired the self-updater\n• Nightly channel coming (AMT-24)",
             };
             AppUpdateText.Text = "v9.9.9 available";
@@ -1586,7 +1598,7 @@ public partial class MainWindow : Window
         ToolsActions.Children.Clear();
         ToolsActions.Children.Add(ToolCard("⟳", "Rescan mods", "re-check both sites", () => { SelectTab(0); LoadMods(); }));
         ToolsActions.Children.Add(ToolCard("🔎", "Check forks", "re-run fork watch", () => { SelectTab(1); LoadForksAsync(); }));
-        ToolsActions.Children.Add(ToolCard("🌐", "Project on GitHub", "Ant's Modding Tools", () => OpenUrl("https://github.com/DegradingAnt/Ant-s-modding-tools")));
+        ToolsActions.Children.Add(ToolCard("🌐", "Project on GitHub", "Ant's Modding Tools", () => OpenUrl("https://github.com/DegradingAnt/Ants-modding-tools")));
         ToolsActions.Children.Add(ToolCard("🔑", "Get a CF API key", "console.curseforge.com", () => OpenUrl("https://console.curseforge.com/#/api-keys")));
     }
 
@@ -2203,7 +2215,7 @@ public partial class MainWindow : Window
 
     // the WNL badge → the project's GitHub
     private void OnOpenRepo(object? sender, PointerPressedEventArgs e) =>
-        OpenUrl("https://github.com/DegradingAnt/Ant-s-modding-tools");
+        OpenUrl("https://github.com/DegradingAnt/Ants-modding-tools");
 
     private static void OpenUrl(string url)
     {

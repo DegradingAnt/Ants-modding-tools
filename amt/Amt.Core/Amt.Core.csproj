@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <!-- bump every patch/update: the status bar shows CORE's own version, independent of the UI -->
-    <Version>0.5.6</Version>
+    <Version>0.5.7</Version>
     <!-- human-readable FILE name: AntsModdingTools.Core.dll (URI-safe — see Amt.App.csproj note); namespaces stay Amt.Core -->
     <AssemblyName>AntsModdingTools.Core</AssemblyName>
     <AssemblyTitle>Ant's Modding Tools Core</AssemblyTitle>
